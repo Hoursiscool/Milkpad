@@ -1,0 +1,66 @@
+# Milkpad
+
+`app\milkpad.exe` is the native Windows desktop editor. Double-click it to open. The supplied drawing is embedded as its Windows app icon in multiple sizes; `assets\milkpad.ico` is the source icon used by the build.
+
+## Install
+
+Double-click **`installer\Milkpad-Setup.exe`** to open the per-user setup wizard. It embeds the app, manual, themes and uninstaller, installs into `%LOCALAPPDATA%\Programs\Milkpad` by default, lets you pick another folder and whether to create a Desktop shortcut, and can launch Milkpad when it finishes. It creates Start Menu shortcuts and registers a per-user entry in **Settings → Apps → Installed apps** (Apps & Features). It can be removed later from that entry or with the installed **Uninstall Milkpad** shortcut. No administrator rights are required.
+
+To rebuild the installer after changing the app, run **`installer\build-installer.cmd`**. It rebuilds the app, uninstaller and embedded payload, and writes a fresh `installer\Milkpad-Setup.exe`; the setup source is `installer\Setup.cs` and the build notes are in `installer\README.md`.
+
+The folder is organized by purpose: `src\` for the single-file source, `app\` for the portable runtime, `assets\` for the icons and application manifest, `docs\` for the manual and extension notes, and `installer\` for setup.
+
+Implemented local editor features include:
+
+- The layout follows Windows Notepad at 100%: a 34 px tab strip with ‹ › arrows once the tabs outgrow it, a 34 px menu bar of plain text menus, a 35 px formatting toolbar with a » button listing the tools that don't fit, a full-width document page with a configurable 16 px page margin, and a 31 px status bar showing line/column, character count, format, zoom, line ending and encoding. The window opens at 1600×826. The Milkpad name, logo mark and pink accent are kept.
+- Document text uses Consolas 11 by default, like Notepad. The toolbar font box is a searchable picker: type part of a family name to filter the list, press Enter to apply, and Escape restores the current font. Format → Search fonts… and Format → Font… open the same picker
+- Multiple document tabs, unsaved-change prompts, open/save as RTF or plain text
+- Rich text styles, font family and size, bold, italic, underline, strikethrough, text color and highlight
+- Headings, bullets, numbered text, paragraph alignment and indentation, including Docs-style Tab/Shift+Tab list nesting
+- Insert links, simple tabular text, date/time, page-break marker, emoji (Insert → Emoji… or Ctrl+E), and comments sidebar
+- Notepad conveniences: Edit → Go to line (Ctrl+G), Insert → Time/date (F5), File → Save a copy, View → Always on top, and a clickable status-bar switch between Windows (CRLF) and Unix (LF) line endings
+- Quality-of-life: remembers the window size, position and maximized state; Ctrl+mouse wheel zooms the editor; right-click a tab to rename, copy its path, open its folder, close it, close other tabs or close all tabs; **Ctrl+Shift+T** reopens the last closed tab; a dedicated **QoL** menu adds tab duplication/reordering, text clean-up (spaces, tabs, duplicate/blank lines, reverse, shuffle, numbering, wrapping, quote straightening), case conversion (camel, Pascal, snake, kebab, constant, dot and slug), selection helpers, line tools, quick date/time/checklist inserts, zoom presets and editor toggles; and per-monitor DPI awareness via `milkpad.exe.config` plus DPI-scaled chrome keeps the Notepad-sized rows, tabs, menus and page margins correct at 125% and 150%
+- Find/replace, undo/redo, print, print preview, page setup, zoom, word wrap, full screen, word count, and in-session version snapshots
+- Text tools: sort lines A→Z / Z→A, trim trailing spaces, remove blank lines, join, duplicate and delete lines, indent/outdent, UPPERCASE, lowercase, Title Case and Sentence case, plus auto-indent on Enter and copy-as-plain-text
+- Bookmarks (Ctrl+F2 toggles, F4 steps through), Go to line (Ctrl+G), Save a copy, Export as HTML and Always on top
+- Live sessions: the pink Share button in the tab strip opens a Google-Docs-style panel — start sharing to get a code, copy a ready-made invite, or paste a code to join. Participants appear as coloured avatars with their caret line and an “editing…” hint, a coloured presence gutter beside the page marks where each person is, clicking a person jumps to their cursor, and the sidebar and tabs update in place so remote typing never flashes the window. Typing still travels as one small insert or delete per keystroke, re-anchored by its surrounding text, with formatting sent as a snapshot; simultaneous inserts at the exact same character keep their own order on each screen
+- **ROLL THE DICE:** its own **ROLL THE DICE** menu category, plus a tab-strip button of the same name, opens a right-side dice game panel that fits beside the page. Each **NEW PROGRAM SHELF** reads installed applications from the Windows uninstall registry and draws a fresh random set of cards (20 by default), ranked by **Windows focus time** from UserAssist. A card shows `—` when Windows has no focus-time record for that app, rather than inventing hours. With **Run the matching uninstaller** checked, the erased card's own installed uninstaller is opened. Milkpad does not add silent or forced-removal flags; the uninstaller controls its own confirmation or Cancel option. Turn the checkbox off to keep the shelf virtual. **ROLL THE DICE → Customize Roll The Dice…** sets the card limit, die sides, panel width, roll speed, focus-time visibility and shelf colours; theme files can set them in `[Dice]` and Lua recipes with `theme.dice(…)`
+- **milkBall:** **ROLL THE DICE → milkBall** opens a keyboard pinball table in the spirit of Word 97's hidden game. **Z** and **M** work the flippers, **Space** launches the ball, **R** restarts and **Esc** closes it. The table has three bumpers, M-I-L-K rollover lanes, two drop-target banks, a spinner, slingshots and a centre post. Completing all four lanes awards an extra ball; clearing a target bank raises the multiplier; bumper chains build a combo. The table keeps three balls and is drawn entirely in Milkpad, so it needs no assets or network access
+- A full user manual in `docs\USER-MANUAL.md`, reachable in the app through Help → User manual or F1; the manual window can save it as PDF, DOCX, RTF, HTML, Markdown or plain text
+
+Build from source with `build.cmd` (the machine's Windows .NET Framework C# compiler is used). Source is in `src\Program.cs`; the build writes `app\milkpad.exe` using `assets\milkpad.ico` and `assets\milkpad.manifest`, and copies `assets\milkpad.exe.config` beside it for per-monitor DPI awareness. Run `installer\build-installer.cmd` to rebuild the setup with a current payload. Keep `app\themes\`, `app\features.cfg` and `app\milkpad.exe.config` beside the executable when you copy the portable app elsewhere; they are loaded at runtime and are not embedded in the executable.
+
+Crash/close safety and navigation added on top of the above:
+
+- Autosave of every open document every 30 seconds, with a restore prompt on next launch (Recover via Tools → Restore last session)
+- Recent files list in File → Open recent, remembered across sessions
+- Comments and version snapshots now persist between sessions (stored in `%APPDATA%\Milkpad`)
+- Find and replace bar (Ctrl+F / Ctrl+H) with live match highlighting, match count, next/previous stepping (Enter, F3, Shift+F3) and replace / replace-all — it restores the original text highlighting when closed
+- Tab rename (F2), tab cycling (Ctrl+Tab / Ctrl+Shift+Tab), close tab (Ctrl+W), Save as (Ctrl+Shift+S), redo (Ctrl+Shift+Z), zoom (Ctrl++ / Ctrl+- / Ctrl+0 with readable menu labels)
+- Drag and drop files onto the window to open them
+- Real sequential numbering for numbered lists instead of prefixing every line with "1."
+- Selection-aware status bar (line/column plus a selection count while text is selected)
+- Safe saving: every save writes to a temp file and swaps it in atomically, keeping the previous version as `<file>.bak`, so a crash or full disk can't leave a half-written document
+- Per-document read-only mode (View menu) with a READ-ONLY indicator in the status bar
+- Save all dirty documents at once (File → Save all, Ctrl+Alt+S)
+- **View → Customize…** (Ctrl+,) opens a focused theme studio: five basic presets (Dark, Light, Midnight, Sepia, Aurora), individual colour pickers for window chrome, panels, page, text, muted text, borders, accent, editor background and editor text, plus the default editor font and size, tab width, spaces-instead-of-tabs, auto-indent, word wrap, status bar, always-on-top, page margin, window opacity, menu/toolbar visibility, UI font, caret color and selection outline color. The same dialog has a **ROLL THE DICE** section for the shelf's card limit, die sides, panel width, roll speed, focus-time column and its accent, panel and card colours. Every choice is saved in `settings.txt`; custom palettes recolour menus, tabs, toolbar, buttons, fields, find bar and status bar as well as the page
+- Theme, palette, custom colours, editor font/size, UI font, caret and selection colors, tab width, soft tabs, auto-indent, word wrap, status bar, line-ending style, always-on-top, page margin, opacity, menu bar and toolbar visibility are remembered between sessions; presets and custom palettes both work in light and dark modes
+- **Themes:** every bundled theme lives in `app\themes\`. `.cfg` presets join the Preset list automatically; `.lua` themes load through **View → Customize… → Load Lua script…**. The top-level **Themes** menu also lists every preset for one-click switching and opens the theme folder. `app\themes\README.md` documents the format
+- **Lua-style theme scripts:** `.lua` recipes in `app\themes\` are safe declarative recipes using `theme.preset`, `theme.color`, `theme.font`, `theme.tabs`, `theme.flag` and `theme.dice`. Every bundled `.cfg` has a complete, self-contained recipe that sets all nine colours plus the Roll The Dice shelf colours; the Fun Gang character recipes and the built-in Aurora/Midnight recipes are included too. Load one from View → Customize… → **Load Lua script…**; scripts are validated, and an unknown call, colour name or out-of-range value reports the file and line instead of failing silently. `app\themes\LUA-README.md` lists the full API. The button is controlled by `lua-scripts` in `app\features.cfg`
+- **Feature registry:** `app\features.cfg` plus the small `FeatureFlag` registry in `src\Program.cs` make optional capabilities data-driven. A new feature is one `RegisterFeature(...)` entry and one `FeatureEnabled(...)` check; `docs\FEATURES.md` shows the pattern and how to add presets or settings
+- Document statistics: words, characters, characters without spaces, paragraphs, reading time and selection counts
+- Rich DOCX read/write: bold, italic, underline, strikethrough, font family and size, text colour, shading/highlight, paragraph alignment, left indent and bulleted lists all survive a save and reopen. Pictures inserted with **Insert → Image…** are embedded in the exported `.docx`; pictures already inside an imported Word file, Word's automatic numbering and tables still flatten to text
+
+## Open source
+
+Milkpad is open source under the MIT license (see `LICENSE`). The complete application is in `src\Program.cs`; `build.cmd` rebuilds `app\milkpad.exe` from that file with the bundled icon. Themes, `features.cfg` and the Sega Genesis recipe are plain files in `app\`, so they can be forked, edited, packaged with a build, or extended without a proprietary service. Contributions should keep the local-first design and the safe declarative Lua subset.
+
+## Antivirus false positives
+
+`app\milkpad.exe` is compiled locally from `src\Program.cs` by `build.cmd` and is **not code-signed**. Scanners such as Malwarebytes commonly flag freshly built, unsigned .NET executables with heuristic names (`MachineLearning/Anomalous`, `Generic.Malware/Suspicious`, `Trojan.Agent`) — the score goes up for a program that can also open a TCP listener for live sessions and writes data under `%APPDATA%`.
+
+What the program actually does, all of it in `src\Program.cs`: it edits text, saves documents atomically, keeps comments/versions/settings in `%APPDATA%\Milkpad`, opens `http`/`https`/`mailto` links you click, and — only when you choose Tools → Start live session — opens one TCP port so peers can exchange your typing. It has no keyboard hooks, no autostart entry, no registry writes, no bundled or downloaded payload, no obfuscation and no self-updating code. The executable is plain .NET IL at roughly 6.1 bits/byte entropy (unpacked), carries no embedded URLs, and its version tab now reports Milkpad 1.1.0.0.
+
+To clear the warning: add an exclusion for the folder, or submit the file to Malwarebytes as a false positive. Signing the build with an Authenticode code-signing certificate is the lasting fix; until then every rebuild produces a new unsigned binary that a heuristic scanner may flag again.
+
+There is no account, no cloud copy and no telemetry. Live sessions connect peers directly over TCP — no Milkpad server is involved — and the traffic is neither encrypted nor authenticated, so use them with people you trust. Comments and version snapshots live in `%APPDATA%\Milkpad`.
